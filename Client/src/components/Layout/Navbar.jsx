@@ -6,37 +6,26 @@ const Navbar = () => {
     const navigate = useNavigate();
     const location = useLocation();
 
-    const [scrolled, setScrolled] = useState(false);
-    const [isLoggedIn, setIsLoggedIn] = useState(() => {
-        return localStorage.getItem("isLoggedIn") === "true";
-    });
+    // --- NEW LOGIC: Derive login status directly from URL path ---
+    // The isLoggedIn status is no longer a state. It's a constant calculated on every render.
+    // If the path starts with any of these prefixes, we are "logged in".
+    const isLoggedIn = location.pathname.startsWith('/admin') || 
+                       location.pathname.startsWith('/employee') || 
+                       location.pathname.startsWith('/head');
 
-    // Check if the current page is the homepage
+    const [scrolled, setScrolled] = useState(false);
     const isHomePage = location.pathname === '/';
 
     useEffect(() => {
         const handleScroll = () => {
-            const isScrolled = window.scrollY > 10;
-            if (isScrolled !== scrolled) {
-                setScrolled(isScrolled);
-            }
+            setScrolled(window.scrollY > 10);
         };
         window.addEventListener('scroll', handleScroll);
         return () => window.removeEventListener('scroll', handleScroll);
-    }, [scrolled]);
+    }, []);
 
-    useEffect(() => {
-        if (location.pathname.startsWith("/admin") || location.pathname.startsWith("/employee") || location.pathname.startsWith("/head")) {
-            if (!isLoggedIn) {
-                setIsLoggedIn(true);
-                localStorage.setItem("isLoggedIn", "true");
-            }
-        }
-    }, [location.pathname, isLoggedIn]);
-
+    // The logout button now just needs to navigate to a public page.
     const handleLogout = () => {
-        setIsLoggedIn(false);
-        localStorage.setItem("isLoggedIn", "false");
         navigate("/");
     };
     
@@ -45,21 +34,17 @@ const Navbar = () => {
         if (drawerCheckbox) drawerCheckbox.checked = false;
     };
 
-    // NavLink style now conditionally changes text color based on the page
-    const getNavLinkClass = ({ isActive }) => {
-        const baseTextColor = isHomePage ? 'text-white' : 'text-base-content';
-        return `font-semibold tracking-wide transition-colors duration-300 relative pb-1 after:content-[''] after:absolute after:bottom-0 after:left-0 after:h-[3px] after:w-0 after:bg-success after:transition-all after:duration-300 hover:text-success ${isActive ? "text-success after:w-full" : baseTextColor}`;
-    };
-
-    // Determine navbar classes based on page and scroll state
     const navClasses = `navbar fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        isHomePage
-            ? scrolled ? 'bg-blue-900 shadow-lg' : 'bg-transparent'
-            : 'bg-base-100 shadow-lg'
-    }`;
+        isHomePage && !scrolled ? 'bg-transparent' : 'bg-blue-900 shadow-lg'
+    } ${isHomePage ? '' : '!bg-base-100 shadow-lg'}`;
     
-    // Determine text color for elements that don't use getNavLinkClass
-    const textColorClass = isHomePage ? 'text-white' : 'text-base-content';
+    const textColorClass = isHomePage && !scrolled ? 'text-base-content' : 'text-white';
+
+    const getNavLinkClass = ({ isActive }) => {
+        const baseTextColor = isHomePage && !scrolled ? 'text-base-content' : 'text-white';
+        const finalTextColor = !isHomePage ? 'text-base-content' : baseTextColor;
+        return `font-semibold tracking-wide transition-colors duration-300 relative pb-1 after:content-[''] after:absolute after:bottom-0 after:left-0 after:h-[3px] after:w-0 after:bg-success after:transition-all after:duration-300 hover:text-success ${isActive ? "text-success after:w-full" : finalTextColor}`;
+    };
 
     return (
         <div className="drawer">
@@ -82,6 +67,7 @@ const Navbar = () => {
                     <div className="navbar-center hidden lg:flex">
                         <ul className="menu menu-horizontal items-center space-x-6 px-1">
                             <li><NavLink to="/" className={getNavLinkClass}>Home</NavLink></li>
+                            {/* This Dashboard link will now appear automatically on the correct pages */}
                             {isLoggedIn && <li><NavLink to="/employee/dashboard" className={getNavLinkClass}>Dashboard</NavLink></li>}
                             <li><NavLink to="/faq" className={getNavLinkClass}>FAQ</NavLink></li>
                             <li><NavLink to="/about" className={getNavLinkClass}>About Us</NavLink></li>
@@ -90,9 +76,9 @@ const Navbar = () => {
                     </div>
                     
                     <div className="navbar-end">
+                        {/* The ternary now uses the derived isLoggedIn constant */}
                         {!isLoggedIn ? (
                             <div className="space-x-2">
-                                {/* --- NEW BUTTON COLORS --- */}
                                 <button onClick={() => navigate('/login')} className="btn bg-white text-primary hover:bg-gray-200 border-none">Login</button>
                                 <button onClick={() => navigate('/register')} className="btn btn-outline btn-success hidden sm:inline-flex">Register</button>
                             </div>
@@ -104,10 +90,10 @@ const Navbar = () => {
                                     </div>
                                 </div>
                                 <ul tabIndex={0} className="menu dropdown-content bg-base-100 rounded-box z-[1] mt-4 w-52 p-2 shadow-xl">
-                                    <li><a onClick={() => navigate('/profile')} className="flex items-center gap-2"><FaUserCircle /> Profile</a></li>
-                                    <li><a onClick={() => navigate('/settings')} className="flex items-center gap-2"><FaCog /> Settings</a></li>
+                                    <li><NavLink to="/profile" className="flex items-center gap-2"><FaUserCircle /> Profile</NavLink></li>
+                                    <li><NavLink to="/settings" className="flex items-center gap-2"><FaCog /> Settings</NavLink></li>
                                     <div className="divider my-1"></div>
-                                    <li><button onClick={handleLogout} className="flex items-center gap-2 text-error"><FaSignOutAlt /> Logout</button></li>
+                                    <li><button onClick={handleLogout} className="flex w-full items-center gap-2 text-error"><FaSignOutAlt /> Logout</button></li>
                                 </ul>
                             </div>
                         )}
@@ -115,15 +101,15 @@ const Navbar = () => {
                 </div>
             </div>
 
-            {/* Mobile Sidebar */}
             <div className="drawer-side z-50">
                 <label htmlFor="my-drawer-3" aria-label="close sidebar" className="drawer-overlay"></label>
                 <ul className="menu bg-base-200 min-h-full w-80 p-4 space-y-2">
                     <li className="text-2xl font-bold p-4">Menu</li>
-                    {/* Note: Mobile links will have dark text due to the drawer's light background */}
-                    <li><NavLink to="/" className={({isActive}) => `font-semibold ... ${isActive ? 'text-success' : 'text-base-content'}`} onClick={handleMobileLinkClick}>Home</NavLink></li>
-                    {isLoggedIn && <li><NavLink to="/employee/dashboard" className={({isActive}) => `font-semibold ... ${isActive ? 'text-success' : 'text-base-content'}`} onClick={handleMobileLinkClick}>Dashboard</NavLink></li>}
-                    {/* ... add similar styling for other mobile links ... */}
+                    <li><NavLink to="/" className={({isActive}) => `font-semibold p-2 rounded-md ${isActive ? 'bg-success text-white' : 'text-base-content'}`} onClick={handleMobileLinkClick}>Home</NavLink></li>
+                    {isLoggedIn && <li><NavLink to="/employee/dashboard" className={({isActive}) => `font-semibold p-2 rounded-md ${isActive ? 'bg-success text-white' : 'text-base-content'}`} onClick={handleMobileLinkClick}>Dashboard</NavLink></li>}
+                    <li><NavLink to="/faq" className={({isActive}) => `font-semibold p-2 rounded-md ${isActive ? 'bg-success text-white' : 'text-base-content'}`} onClick={handleMobileLinkClick}>FAQ</NavLink></li>
+                    <li><NavLink to="/about" className={({isActive}) => `font-semibold p-2 rounded-md ${isActive ? 'bg-success text-white' : 'text-base-content'}`} onClick={handleMobileLinkClick}>About Us</NavLink></li>
+                    <li><NavLink to="/contact" className={({isActive}) => `font-semibold p-2 rounded-md ${isActive ? 'bg-success text-white' : 'text-base-content'}`} onClick={handleMobileLinkClick}>Contact Us</NavLink></li>
                 </ul>
             </div>
         </div>

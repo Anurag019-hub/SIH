@@ -1,7 +1,7 @@
 import React from 'react';
 import { Route, Routes } from 'react-router-dom';
 import MainLayout from './components/Layout/MainLayout';
-import NotFound from './pages/Informative/Notfound.jsx';
+import NotFound from './pages/Informative/NotFound.jsx';
 import SidebarEmployee from './components/Dashboard/SlidebarEmployee.jsx';
 import SidebarProjectHead from './components/Dashboard/SlidebarProjectHead.jsx';
 import SidebarAdmin from './components/Dashboard/SlidebarAdmin.jsx';
